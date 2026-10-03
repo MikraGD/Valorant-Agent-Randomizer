@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VALORANT // Custom Squad Agent Randomizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Tungsten:wght@600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        valRed: '#FF4655',
+                        valDark: '#0F1923',
+                        valDarker: '#0B1219',
+                        valPanel: '#17222D',
+                        valCyan: '#00F0FF',
+                        valYellow: '#ECE8E1',
+                        valGold: '#FD8100',
+                        valPurple: '#BD3944'
+                    },
+                    fontFamily: {
+                        valHeading: ['Teko', 'sans-serif'],
+                        valImpact: ['Tungsten', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0F1923;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(255, 70, 85, 0.18), transparent 75%),
+                linear-gradient(rgba(15, 25, 35, 0.88), rgba(15, 25, 35, 0.96)),
+                url('data:image/svg+xml;utf8,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><g fill="%23ffffff" fill-opacity="0.02"><path d="M0 0h40v40H0z"/><path d="M0 0l40 40M40 0L0 40"/></g></svg>');
+            color: #ECE8E1;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .val-border {
+            clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+        }
+
+        .val-button {
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .val-button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.2);
+            box-shadow: 0 0 20px rgba(255, 70, 85, 0.45);
+        }
+
+        .val-button:active {
+            transform: translateY(1px);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 20px rgba(255, 70, 85, 0.35);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        @keyframes slotGlitch {
+            0% { transform: translateY(0) scale(1); filter: blur(0px); }
+            25% { transform: translateY(-4px) scale(1.02); filter: blur(1px); }
+            50% { transform: translateY(4px) scale(0.98); filter: blur(0.5px); }
+            75% { transform: translateY(-2px) scale(1.01); filter: blur(1px); }
+            100% { transform: translateY(0) scale(1); filter: blur(0px); }
+        }
+
+        .spinning-slot {
+            animation: slotGlitch 0.08s infinite linear;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0B1219;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #FF4655;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="flex flex-col font-sans antialiased min-h-screen custom-scrollbar pb-10">
+
+    <header class="w-full border-b border-valRed/30 bg-valDarker/90 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-valRed flex items-center justify-center val-border text-valDark font-bold shadow-lg">
+                    <i class="fa-solid fa-crosshairs text-xl text-valDark"></i>
+                </div>
+                <div>
+                    <h1 class="font-valHeading text-2xl sm:text-3xl tracking-wider leading-none text-white">
+                        VALORANT // <span class="text-valRed">CUSTOM SQUAD RANDOMIZER</span>
+                    </h1>
+                    <p class="text-xs text-gray-400 font-mono tracking-wide">CUSTOM AGENT OWNERSHIP & PARTY ROSTER ENGINE</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="soundToggle" onclick="toggleSFX()" class="px-3 py-1.5 text-xs font-mono bg-valPanel hover:bg-gray-700 text-gray-200 border border-gray-700 rounded flex items-center gap-2 transition">
+                    <i class="fa-solid fa-volume-high text-valCyan" id="soundIcon"></i>
+                    <span id="soundText">SFX: ON</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto w-full px-4 pt-6 flex-grow flex flex-col gap-6">
+
+        <!-- Global Control Bar -->
+        <section class="bg-valPanel/90 border border-gray-800 p-4 val-border flex flex-wrap items-center justify-between gap-4 shadow-xl">
+            <div class="flex flex-wrap items-center gap-6">
+                <!-- Prevent Duplicates Toggle -->
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative">
+                        <input type="checkbox" id="preventDupes" class="sr-only" checked onchange="toggleDupesOption(this)">
+                        <div class="w-11 h-6 bg-gray-800 rounded-full border border-gray-700 transition group-hover:border-valRed"></div>
+                        <div id="dupeDot" class="absolute left-1 top-1 bg-valRed w-4 h-4 rounded-full transition-transform translate-x-5 shadow"></div>
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold tracking-wide text-gray-200 block leading-tight">PREVENT DUPLICATES</span>
+                        <span class="text-[10px] text-gray-400 font-mono">Unique agents for each friend in spin</span>
+                    </div>
+                </label>
+
+                <div class="h-8 w-[1px] bg-gray-800 hidden md:block"></div>
+
+                <!-- Squad Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <button onclick="openAddFriendModal()" class="px-3 py-2 text-xs font-mono font-bold bg-gray-800 hover:bg-gray-700 border border-gray-700 text-valCyan rounded flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-user-plus"></i> NEW FRIEND
+                    </button>
+                    <button onclick="resetOwnershipToDefault()" class="px-3 py-2 text-xs font-mono bg-gray-800/80 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white rounded transition" title="Reset all profiles to default settings">
+                        <i class="fa-solid fa-rotate-left"></i> RESET ALL
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global Lock In / Spin Button -->
+            <button id="spinBtn" onclick="spinParty()" class="val-button w-full sm:w-auto px-10 py-3.5 bg-valRed text-white font-valHeading text-2xl tracking-widest flex items-center justify-center gap-3 glow-red">
+                <i class="fa-solid fa-dice text-2xl"></i>
+                <span>LOCK IN SQUAD</span>
+            </button>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="squadGrid">
+            <!-- Dynamic Player Cards Injected Here -->
+        </section>
+
+        <section class="bg-valPanel/80 border border-gray-800 p-5 val-border shadow-xl">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-3 border-b border-gray-800">
+                <div>
+                    <h2 class="font-valHeading text-2xl text-white tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-valCyan"></i> ALL VALORANT AGENTS ROSTER
+                    </h2>
+                    <p class="text-xs text-gray-400 font-mono">Overview of default agents and custom roster agents</p>
+                </div>
+
+                <!-- Role Filter Tabs -->
+                <div class="flex flex-wrap items-center gap-1.5" id="rosterFilterTabs">
+                    <button onclick="filterOverview('ALL')" class="roster-tab active px-3 py-1 text-xs font-bold bg-valRed text-white val-border">ALL</button>
+                    <button onclick="filterOverview('Duelist')" class="roster-tab px-3 py-1 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">DUELISTS</button>
+                    <button onclick="filterOverview('Initiator')" class="roster-tab px-3 py-1 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">INITIATORS</button>
+                    <button onclick="filterOverview('Controller')" class="roster-tab px-3 py-1 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">CONTROLLERS</button>
+                    <button onclick="filterOverview('Sentinel')" class="roster-tab px-3 py-1 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">SENTINELS</button>
+                </div>
+            </div>
+
+            <!-- Agent Overview Cards Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3" id="globalRosterGrid">
+                <!-- Injected via JavaScript -->
+            </div>
+        </section>
+
+    </main>
+
+    <div id="ownershipModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-valPanel border border-gray-700 val-border w-full max-w-2xl p-6 relative shadow-2xl flex flex-col max-h-[90vh]">
+            <button onclick="closeOwnershipModal()" class="absolute top-4 right-4 text-gray-400 hover:text-valRed text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="mb-4 pb-3 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-valCyan text-xl"></i>
+                    <h3 class="font-valHeading text-2xl text-white tracking-wider" id="modalPlayerTitle">EDIT AGENT OWNERSHIP</h3>
+                </div>
+                <p class="text-xs text-gray-400 font-mono">Toggle agents unlocked for this player (Default 4 are locked on)</p>
+            </div>
+
+            <div class="overflow-y-auto custom-scrollbar flex-grow pr-2 space-y-4">
+                <div class="flex justify-between items-center bg-gray-900/60 p-2.5 rounded border border-gray-800">
+                    <span class="text-xs font-mono text-gray-300">Quick Actions:</span>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAllAgentsInModal(true)" class="px-2.5 py-1 text-[11px] font-bold bg-gray-800 hover:bg-gray-700 text-valCyan rounded border border-gray-700">UNLOCK ALL</button>
+                        <button onclick="toggleAllAgentsInModal(false)" class="px-2.5 py-1 text-[11px] font-bold bg-gray-800 hover:bg-gray-700 text-gray-400 rounded border border-gray-700">RESET TO DEFAULT</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="modalAgentList">
+                    <!-- Agent Checkboxes Injected Here -->
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-800 flex justify-end gap-3 mt-4">
+                <button onclick="closeOwnershipModal()" class="px-5 py-2 text-xs font-mono bg-gray-800 hover:bg-gray-700 text-gray-300 rounded">CANCEL</button>
+                <button onclick="saveModalOwnership()" class="val-button px-6 py-2 bg-valRed text-white font-valHeading text-lg tracking-wider">SAVE OWNERSHIP</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addFriendModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-valPanel border border-gray-700 val-border w-full max-w-md p-6 relative shadow-2xl">
+            <button onclick="closeAddFriendModal()" class="absolute top-4 right-4 text-gray-400 hover:text-valRed text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="mb-4 pb-2 border-b border-gray-800">
+                <h3 class="font-valHeading text-2xl text-white tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-valRed"></i> ADD NEW FRIEND PROFILE
+                </h3>
+                <p class="text-xs text-gray-400 font-mono">Create a custom profile with specific agent ownership</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono text-gray-300 mb-1">RIOT ID / DISPLAY NAME</label>
+                    <input type="text" id="newFriendName" placeholder="e.g. TenZ#0001" 
+                        class="w-full bg-valDark border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-valRed">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-mono text-gray-300 mb-1">PREFERRED ROLE</label>
+                    <select id="newFriendRole" class="w-full bg-valDark border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-valRed">
+                        <option value="ANY">ANY ROLE</option>
+                        <option value="Duelist">DUELIST</option>
+                        <option value="Initiator">INITIATOR</option>
+                        <option value="Controller">CONTROLLER</option>
+                        <option value="Sentinel">SENTINEL</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-800 flex justify-end gap-3 mt-6">
+                <button onclick="closeAddFriendModal()" class="px-5 py-2 text-xs font-mono bg-gray-800 text-gray-300 rounded">CANCEL</button>
+                <button onclick="createNewFriendProfile()" class="val-button px-6 py-2 bg-valRed text-white font-valHeading text-lg tracking-wider">CREATE PROFILE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MASTER AGENT DATABASE
+        const ALL_AGENTS = [
+            // DEFAULTS (Unlocked for everyone)
+            { name: "Jett", role: "Duelist", default: true, color: "#87CEEB", icon: "fa-wind", tag: "AGILE ENTRY & SNIPER" },
+            { name: "Phoenix", role: "Duelist", default: true, color: "#FF4500", icon: "fa-fire", tag: "SELF-HEAL & FLASH" },
+            { name: "Sage", role: "Sentinel", default: true, color: "#00FA9A", icon: "fa-hand-holding-medical", tag: "HEALER & WALL LOCKDOWN" },
+            { name: "Brimstone", role: "Controller", default: true, color: "#B22222", icon: "fa-satellite", tag: "SMOKE & ORBITAL STRIKE" },
+
+            // UNLOCKABLE AGENTS
+            { name: "Reyna", role: "Duelist", default: false, color: "#A020F0", icon: "fa-eye", tag: "DISMISS & HEAL ON KILL" },
+            { name: "Raze", role: "Duelist", default: false, color: "#FF8C00", icon: "fa-bomb", tag: "HIGH EXPLOSIVE AOE" },
+            { name: "Yoru", role: "Duelist", default: false, color: "#1E90FF", icon: "fa-ghost", tag: "DIMENSIONAL DECEPTION" },
+            { name: "Neon", role: "Duelist", default: false, color: "#00FFFF", icon: "fa-bolt", tag: "HIGH-SPEED ELECTRIC ENTRY" },
+            { name: "Iso", role: "Duelist", default: false, color: "#9370DB", icon: "fa-shield-halved", tag: "1V1 ARENA DUELIST" },
+            
+            { name: "Sova", role: "Initiator", default: false, color: "#4169E1", icon: "fa-crosshairs", tag: "RECON DART & SHOCK" },
+            { name: "Fade", role: "Initiator", default: false, color: "#2F4F4F", icon: "fa-hand-dots", tag: "TERROR REVEAL & TRAILS" },
+            { name: "Breach", role: "Initiator", default: false, color: "#CD853F", icon: "fa-volcano", tag: "SEISMIC CONCUSSION" },
+            { name: "Skye", role: "Initiator", default: false, color: "#3CB371", icon: "fa-leaf", tag: "GUIDED FLASH & TIGER" },
+            { name: "KAY/O", role: "Initiator", default: false, color: "#708090", icon: "fa-robot", tag: "ABILITY SUPPRESSION" },
+            { name: "Gekko", role: "Initiator", default: false, color: "#7FFF00", icon: "fa-frog", tag: "REUSABLE CREW CREATURES" },
+            { name: "Tejo", role: "Initiator", default: false, color: "#20B2AA", icon: "fa-satellite-dish", tag: "TACTICAL INTEL & STRIKE" },
+
+            { name: "Clove", role: "Controller", default: false, color: "#FF69B4", icon: "fa-skull-crossbones", tag: "POST-DEATH SMOKES & RES" },
+            { name: "Omen", role: "Controller", default: false, color: "#483D8B", icon: "fa-mask", tag: "TELEPORT & PARANOIA" },
+            { name: "Viper", role: "Controller", default: false, color: "#00FF7F", icon: "fa-biohazard", tag: "TOXIC WALL & PIT" },
+            { name: "Astra", role: "Controller", default: false, color: "#BA55D3", icon: "fa-star", tag: "ASTRAL FORM DIVISION" },
+            { name: "Harbor", role: "Controller", default: false, color: "#008B8B", icon: "fa-water", tag: "HIGH TIDE WATER SHIELDS" },
+
+            { name: "Killjoy", role: "Sentinel", default: false, color: "#FFD700", icon: "fa-microchip", tag: "TURRET & ALARMBOT SETUP" },
+            { name: "Cypher", role: "Sentinel", default: false, color: "#D3D3D3", icon: "fa-hat-cowboy", tag: "TRIPWIRES & SPYCAM" },
+            { name: "Chamber", role: "Sentinel", default: false, color: "#DAA520", icon: "fa-gem", tag: "CUSTOM SNIPER & TP" },
+            { name: "Deadlock", role: "Sentinel", default: false, color: "#4682B4", icon: "fa-network-wired", tag: "GRAVNET & NANOWIRE" },
+            { name: "Vyse", role: "Sentinel", default: false, color: "#8A2BE2", icon: "fa-magnet", tag: "LIQUID METAL & FLASH" },
+            { name: "Miks", role: "Sentinel", default: false, color: "#E67E22", icon: "fa-bolt-lightning", tag: "KINETIC SHIELD & TRAPS" }
+        ];
+
+        // DEFAULT PROFILES SETUP SPECIFIC TO USER REQUEST
+        const INITIAL_PROFILES = [
+            {
+                id: "dumb_jett",
+                name: "Im a dumb jett#1337",
+                rolePref: "ANY",
+                activeInParty: true,
+                lockedIn: false,
+                assignedAgent: null,
+                // Defaults (Jett, Phoenix, Sage, Brimstone) + Omen, Miks, Cypher, Yoru, Chamber
+                ownedAgents: ["Jett", "Phoenix", "Sage", "Brimstone", "Omen", "Miks", "Cypher", "Yoru", "Chamber"]
+            },
+            {
+                id: "me",
+                name: "Me",
+                rolePref: "ANY",
+                activeInParty: true,
+                lockedIn: false,
+                assignedAgent: null,
+                // Defaults + Reyna, Yoru, Tejo, Clove, Chamber, Raze, Neon
+                ownedAgents: ["Jett", "Phoenix", "Sage", "Brimstone", "Reyna", "Yoru", "Tejo", "Clove", "Chamber", "Raze", "Neon"]
+            },
+            {
+                id: "hk15",
+                name: "hk15",
+                rolePref: "ANY",
+                activeInParty: true,
+                lockedIn: false,
+                assignedAgent: null,
+                // Same as 'Me' except Tejo + Fade, Cypher
+                ownedAgents: ["Jett", "Phoenix", "Sage", "Brimstone", "Reyna", "Yoru", "Clove", "Chamber", "Raze", "Neon", "Fade", "Cypher"]
+            }
+        ];
+
+        let profiles = [];
+        let editingPlayerId = null;
+        let activeModalOwnedSet = new Set();
+        let sfxEnabled = true;
+
+        // Web Audio API Synth Engine
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!sfxEnabled) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'tick') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(350 + Math.random() * 250, now);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+                    osc.start(now);
+                    osc.stop(now + 0.03);
+                } else if (type === 'lock') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.exponentialRampToValueAtTime(650, now + 0.18);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                } else if (type === 'spinStart') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.25);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.error("Audio error:", e);
+            }
+        }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            document.getElementById('soundIcon').className = sfxEnabled ? "fa-solid fa-volume-high text-valCyan" : "fa-solid fa-volume-xmark text-gray-500";
+            document.getElementById('soundText').innerText = sfxEnabled ? "SFX: ON" : "SFX: OFF";
+        }
+
+        // Local Storage Sync
+        function loadProfiles() {
+            const saved = localStorage.getItem('val_squad_profiles_v1');
+            if (saved) {
+                try {
+                    profiles = JSON.parse(saved);
+                } catch(e) {
+                    profiles = JSON.parse(JSON.stringify(INITIAL_PROFILES));
+                }
+            } else {
+                profiles = JSON.parse(JSON.stringify(INITIAL_PROFILES));
+            }
+        }
+
+        function saveProfiles() {
+            localStorage.setItem('val_squad_profiles_v1', JSON.stringify(profiles));
+        }
+
+        function resetOwnershipToDefault() {
+            if (confirm("Reset all player profiles and agent ownerships back to initial custom defaults?")) {
+                profiles = JSON.parse(JSON.stringify(INITIAL_PROFILES));
+                saveProfiles();
+                renderSquad();
+                renderGlobalRoster();
+            }
+        }
+
+        function toggleDupesOption(el) {
+            const dot = document.getElementById('dupeDot');
+            if (el.checked) {
+                dot.style.transform = 'translateX(1.25rem)';
+            } else {
+                dot.style.transform = 'translateX(0rem)';
+            }
+        }
+
+        function renderSquad() {
+            const grid = document.getElementById('squadGrid');
+            grid.innerHTML = '';
+
+            profiles.forEach((player) => {
+                const agent = player.assignedAgent;
+                const card = document.createElement('div');
+                card.className = `bg-valPanel border ${player.activeInParty ? 'border-gray-800' : 'border-gray-800/40 opacity-50'} val-border p-4 flex flex-col justify-between relative overflow-hidden transition-all duration-300 min-h-[340px] shadow-lg`;
+
+                if (agent && player.activeInParty) {
+                    card.style.borderColor = agent.color + '88';
+                }
+
+                // Calculate total owned agents count
+                const ownedCount = player.ownedAgents.length;
+
+                card.innerHTML = `
+                    <!-- Header Bar -->
+                    <div class="flex items-center justify-between gap-2 z-10 pb-2 border-b border-gray-800/80">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <input type="checkbox" ${player.activeInParty ? 'checked' : ''} onchange="togglePartyActive('${player.id}', this.checked)" 
+                                class="w-4 h-4 accent-valRed rounded cursor-pointer" title="Include in party roll">
+                            <input type="text" value="${player.name}" onchange="updatePlayerName('${player.id}', this.value)" 
+                                class="bg-transparent font-valHeading text-2xl text-white focus:outline-none focus:border-b border-valRed w-full tracking-wider uppercase truncate">
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="toggleLockPlayer('${player.id}')" class="p-1.5 hover:text-valCyan ${player.lockedIn ? 'text-valCyan' : 'text-gray-500'} text-xs transition" title="${player.lockedIn ? 'Unlock Agent Choice' : 'Lock Choice'}">
+                                <i class="fa-solid ${player.lockedIn ? 'fa-lock' : 'fa-lock-open'}"></i>
+                            </button>
+                            <button onclick="openOwnershipModal('${player.id}')" class="p-1.5 text-gray-400 hover:text-valCyan text-xs transition" title="Edit Owned Agents">
+                                <i class="fa-solid fa-sliders"></i>
+                            </button>
+                            ${profiles.length > 1 ? `
+                                <button onclick="deleteProfile('${player.id}')" class="p-1.5 text-gray-500 hover:text-valRed text-xs transition" title="Delete Profile">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Role Filter Selection & Agent Count -->
+                    <div class="my-3 z-10 flex items-center justify-between gap-2">
+                        <div class="flex-grow">
+                            <label class="text-[10px] font-mono text-gray-400 block mb-0.5">PREFERRED ROLE</label>
+                            <select onchange="updatePlayerRole('${player.id}', this.value)" 
+                                class="bg-valDark text-xs text-gray-200 border border-gray-700 rounded px-2 py-1 w-full focus:outline-none focus:border-valCyan">
+                                <option value="ANY" ${player.rolePref === 'ANY' ? 'selected' : ''}>ANY ROLE</option>
+                                <option value="Duelist" ${player.rolePref === 'Duelist' ? 'selected' : ''}>DUELIST</option>
+                                <option value="Initiator" ${player.rolePref === 'Initiator' ? 'selected' : ''}>INITIATOR</option>
+                                <option value="Controller" ${player.rolePref === 'Controller' ? 'selected' : ''}>CONTROLLER</option>
+                                <option value="Sentinel" ${player.rolePref === 'Sentinel' ? 'selected' : ''}>SENTINEL</option>
+                            </select>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-[10px] font-mono text-gray-400 block">UNLOCKED</span>
+                            <span class="text-xs font-mono font-bold text-valCyan">${ownedCount} / ${ALL_AGENTS.length}</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Agent Display Area -->
+                    <div class="flex-grow flex flex-col items-center justify-center my-1 py-4 bg-valDarker/90 rounded border border-gray-800/80 relative overflow-hidden z-10" id="slot-${player.id}">
+                        ${agent ? `
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-2 shadow-xl transition-all" style="background-color: ${agent.color}22; color: ${agent.color}; border: 2px solid ${agent.color}">
+                                <i class="fa-solid ${agent.icon}"></i>
+                            </div>
+                            <span class="font-valImpact text-4xl tracking-wider text-white uppercase leading-none">${agent.name}</span>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-[10px] font-mono tracking-widest px-2 py-0.5 rounded text-white font-semibold" style="background-color: ${agent.color}44">
+                                    ${agent.role.toUpperCase()}
+                                </span>
+                            </div>
+                            <p class="text-[10px] font-mono text-gray-400 mt-2 px-3 text-center uppercase tracking-tight">${agent.tag}</p>
+                        ` : `
+                            <div class="w-14 h-14 rounded-full border border-dashed border-gray-700 flex items-center justify-center text-gray-600 mb-2">
+                                <i class="fa-solid fa-user-ninja text-xl"></i>
+                            </div>
+                            <span class="text-xs font-mono text-gray-500 uppercase tracking-widest">READY TO ROLL</span>
+                        `}
+                    </div>
+
+                    <!-- Single Player Roll Button -->
+                    <div class="mt-3 z-10">
+                        <button onclick="spinSinglePlayer('${player.id}')" ${!player.activeInParty ? 'disabled' : ''} 
+                            class="w-full py-2 bg-gray-800 hover:bg-gray-700 text-valCyan border border-gray-700 font-valHeading text-lg tracking-wider val-button flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>ROLL FOR ${player.name.split('#')[0].toUpperCase()}</span>
+                        </button>
+                    </div>
+
+                    <!-- Subtle Background Accent Gradient -->
+                    ${agent ? `<div class="absolute inset-0 pointer-events-none opacity-20" style="background: radial-gradient(circle at center, ${agent.color}, transparent 70%)"></div>` : ''}
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Profile Updates
+        function togglePartyActive(id, checked) {
+            const p = profiles.find(x => x.id === id);
+            if (p) {
+                p.activeInParty = checked;
+                saveProfiles();
+                renderSquad();
+            }
+        }
+
+        function updatePlayerName(id, val) {
+            const p = profiles.find(x => x.id === id);
+            if (p) {
+                p.name = val.trim() || "Agent";
+                saveProfiles();
+            }
+        }
+
+        function updatePlayerRole(id, role) {
+            const p = profiles.find(x => x.id === id);
+            if (p) {
+                p.rolePref = role;
+                saveProfiles();
+            }
+        }
+
+        function toggleLockPlayer(id) {
+            const p = profiles.find(x => x.id === id);
+            if (p) {
+                p.lockedIn = !p.lockedIn;
+                saveProfiles();
+                renderSquad();
+            }
+        }
+
+        function deleteProfile(id) {
+            if (confirm("Delete this friend profile?")) {
+                profiles = profiles.filter(x => x.id !== id);
+                saveProfiles();
+                renderSquad();
+            }
+        }
+
+        function spinParty() {
+            playSound('spinStart');
+            const preventDupes = document.getElementById('preventDupes').checked;
+            const activePlayers = profiles.filter(p => p.activeInParty);
+
+            if (activePlayers.length === 0) {
+                alert("Please select at least one active player in the squad!");
+                return;
+            }
+
+            const usedAgents = new Set();
+            if (preventDupes) {
+                activePlayers.forEach(p => {
+                    if (p.lockedIn && p.assignedAgent) {
+                        usedAgents.add(p.assignedAgent.name);
+                    }
+                });
+            }
+
+            const spinBtn = document.getElementById('spinBtn');
+            spinBtn.disabled = true;
+            spinBtn.classList.add('opacity-50');
+
+            let ticks = 0;
+            const maxTicks = 20;
+
+            const timer = setInterval(() => {
+                ticks++;
+                playSound('tick');
+
+                activePlayers.forEach(player => {
+                    if (player.lockedIn) return;
+
+                    const slotEl = document.getElementById(`slot-${player.id}`);
+                    if (!slotEl) return;
+
+                    // Get unlocked pool for player
+                    const ownedSet = new Set(player.ownedAgents);
+                    let pool = ALL_AGENTS.filter(a => ownedSet.has(a.name));
+
+                    // Filter by role preference if specified
+                    if (player.rolePref !== 'ANY') {
+                        const rolePool = pool.filter(a => a.role === player.rolePref);
+                        if (rolePool.length > 0) pool = rolePool;
+                    }
+
+                    // Filter out duplicate picks if option enabled
+                    if (preventDupes) {
+                        const nonDupePool = pool.filter(a => !usedAgents.has(a.name));
+                        if (nonDupePool.length > 0) pool = nonDupePool;
+                    }
+
+                    if (pool.length === 0) pool = ALL_AGENTS.filter(a => ownedSet.has(a.name));
+
+                    const temp = pool[Math.floor(Math.random() * pool.length)];
+
+                    slotEl.className = "flex-grow flex flex-col items-center justify-center my-1 py-4 bg-valDarker rounded border border-valCyan spinning-slot z-10";
+                    slotEl.innerHTML = `
+                        <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-1 text-valCyan">
+                            <i class="fa-solid ${temp.icon}"></i>
+                        </div>
+                        <span class="font-valImpact text-3xl text-valCyan tracking-wider uppercase">${temp.name}</span>
+                        <span class="text-[10px] font-mono text-gray-400">${temp.role.toUpperCase()}</span>
+                    `;
+                });
+
+                if (ticks >= maxTicks) {
+                    clearInterval(timer);
+                    finalizeSpin(activePlayers, preventDupes);
+                    spinBtn.disabled = false;
+                    spinBtn.classList.remove('opacity-50');
+                }
+            }, 75);
+        }
+
+        function spinSinglePlayer(playerId) {
+            playSound('spinStart');
+            const player = profiles.find(p => p.id === playerId);
+            if (!player || !player.activeInParty) return;
+
+            const slotEl = document.getElementById(`slot-${player.id}`);
+            if (!slotEl) return;
+
+            let ticks = 0;
+            const maxTicks = 16;
+
+            const timer = setInterval(() => {
+                ticks++;
+                playSound('tick');
+
+                const ownedSet = new Set(player.ownedAgents);
+                let pool = ALL_AGENTS.filter(a => ownedSet.has(a.name));
+
+                if (player.rolePref !== 'ANY') {
+                    const rolePool = pool.filter(a => a.role === player.rolePref);
+                    if (rolePool.length > 0) pool = rolePool;
+                }
+
+                const temp = pool[Math.floor(Math.random() * pool.length)];
+
+                slotEl.className = "flex-grow flex flex-col items-center justify-center my-1 py-4 bg-valDarker rounded border border-valCyan spinning-slot z-10";
+                slotEl.innerHTML = `
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-1 text-valCyan">
+                        <i class="fa-solid ${temp.icon}"></i>
+                    </div>
+                    <span class="font-valImpact text-3xl text-valCyan tracking-wider uppercase">${temp.name}</span>
+                `;
+
+                if (ticks >= maxTicks) {
+                    clearInterval(timer);
+                    
+                    // Final pick
+                    const finalPool = pool;
+                    player.assignedAgent = finalPool[Math.floor(Math.random() * finalPool.length)];
+                    playSound('lock');
+                    saveProfiles();
+                    renderSquad();
+                }
+            }, 75);
+        }
+
+        function finalizeSpin(activePlayers, preventDupes) {
+            const usedAgents = new Set();
+
+            if (preventDupes) {
+                activePlayers.forEach(p => {
+                    if (p.lockedIn && p.assignedAgent) {
+                        usedAgents.add(p.assignedAgent.name);
+                    }
+                });
+            }
+
+            activePlayers.forEach(player => {
+                if (player.lockedIn && player.assignedAgent) return;
+
+                const ownedSet = new Set(player.ownedAgents);
+                let pool = ALL_AGENTS.filter(a => ownedSet.has(a.name));
+
+                if (player.rolePref !== 'ANY') {
+                    const rolePool = pool.filter(a => a.role === player.rolePref);
+                    if (rolePool.length > 0) pool = rolePool;
+                }
+
+                if (preventDupes) {
+                    const nonDupePool = pool.filter(a => !usedAgents.has(a.name));
+                    if (nonDupePool.length > 0) {
+                        pool = nonDupePool;
+                    }
+                }
+
+                if (pool.length === 0) {
+                    pool = ALL_AGENTS.filter(a => ownedSet.has(a.name));
+                }
+
+                const chosen = pool[Math.floor(Math.random() * pool.length)];
+                player.assignedAgent = chosen;
+
+                if (preventDupes && chosen) {
+                    usedAgents.add(chosen.name);
+                }
+            });
+
+            playSound('lock');
+            saveProfiles();
+            renderSquad();
+        }
+
+        function openOwnershipModal(playerId) {
+            editingPlayerId = playerId;
+            const player = profiles.find(p => p.id === playerId);
+            if (!player) return;
+
+            document.getElementById('modalPlayerTitle').innerText = `EDIT OWNERSHIP // ${player.name.toUpperCase()}`;
+            activeModalOwnedSet = new Set(player.ownedAgents);
+
+            renderModalAgentCheckboxes();
+            document.getElementById('ownershipModal').classList.remove('hidden');
+        }
+
+        function renderModalAgentCheckboxes() {
+            const container = document.getElementById('modalAgentList');
+            container.innerHTML = '';
+
+            ALL_AGENTS.forEach(agent => {
+                const isDefault = agent.default;
+                const isOwned = isDefault || activeModalOwnedSet.has(agent.name);
+
+                const item = document.createElement('label');
+                item.className = `p-2.5 rounded border cursor-pointer flex items-center justify-between gap-2 transition ${
+                    isOwned ? 'bg-valDark border-valCyan/50 text-white' : 'bg-gray-900/60 border-gray-800 text-gray-500'
+                }`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-2 truncate">
+                        <i class="fa-solid ${agent.icon} text-xs" style="color: ${agent.color}"></i>
+                        <span class="text-xs font-bold truncate">${agent.name}</span>
+                        ${isDefault ? '<span class="text-[9px] bg-gray-800 text-gray-400 px-1 rounded">DEFAULT</span>' : ''}
+                    </div>
+                    <input type="checkbox" ${isOwned ? 'checked' : ''} ${isDefault ? 'disabled' : ''} 
+                        onchange="toggleModalAgent('${agent.name}', this.checked)"
+                        class="w-4 h-4 accent-valRed rounded cursor-pointer">
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        function toggleModalAgent(agentName, checked) {
+            if (checked) {
+                activeModalOwnedSet.add(agentName);
+            } else {
+                activeModalOwnedSet.delete(agentName);
+            }
+            renderModalAgentCheckboxes();
+        }
+
+        function toggleAllAgentsInModal(enableAll) {
+            if (enableAll) {
+                ALL_AGENTS.forEach(a => activeModalOwnedSet.add(a.name));
+            } else {
+                activeModalOwnedSet.clear();
+                // Retain defaults
+                ALL_AGENTS.filter(a => a.default).forEach(a => activeModalOwnedSet.add(a.name));
+            }
+            renderModalAgentCheckboxes();
+        }
+
+        function saveModalOwnership() {
+            if (!editingPlayerId) return;
+            const player = profiles.find(p => p.id === editingPlayerId);
+            if (player) {
+                player.ownedAgents = Array.from(activeModalOwnedSet);
+                saveProfiles();
+                renderSquad();
+                renderGlobalRoster();
+            }
+            closeOwnershipModal();
+        }
+
+        function closeOwnershipModal() {
+            document.getElementById('ownershipModal').classList.add('hidden');
+            editingPlayerId = null;
+        }
+
+        // Add New Friend Modal
+        function openAddFriendModal() {
+            document.getElementById('newFriendName').value = '';
+            document.getElementById('addFriendModal').classList.remove('hidden');
+        }
+
+        function closeAddFriendModal() {
+            document.getElementById('addFriendModal').classList.add('hidden');
+        }
+
+        function createNewFriendProfile() {
+            const nameInput = document.getElementById('newFriendName').value.trim();
+            const rolePref = document.getElementById('newFriendRole').value;
+
+            if (!nameInput) {
+                alert("Please enter a valid player name or Riot ID!");
+                return;
+            }
+
+            const newId = 'player_' + Date.now();
+            // Default 4 unlocked for new profiles
+            const defaultOwned = ALL_AGENTS.filter(a => a.default).map(a => a.name);
+
+            profiles.push({
+                id: newId,
+                name: nameInput,
+                rolePref: rolePref,
+                activeInParty: true,
+                lockedIn: false,
+                assignedAgent: null,
+                ownedAgents: defaultOwned
+            });
+
+            saveProfiles();
+            renderSquad();
+            closeAddFriendModal();
+        }
+
+        function renderGlobalRoster(filterRole = 'ALL') {
+            const grid = document.getElementById('globalRosterGrid');
+            grid.innerHTML = '';
+
+            ALL_AGENTS.forEach(agent => {
+                if (filterRole !== 'ALL' && agent.role !== filterRole) return;
+
+                const card = document.createElement('div');
+                card.className = "bg-valDark border border-gray-800 p-2.5 rounded flex flex-col justify-between hover:border-gray-600 transition";
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded text-white" style="background-color: ${agent.color}33">
+                            ${agent.role.toUpperCase()}
+                        </span>
+                        <i class="fa-solid ${agent.icon} text-sm" style="color: ${agent.color}"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-valImpact text-xl tracking-wide text-white leading-tight uppercase">${agent.name}</h4>
+                        <p class="text-[9px] text-gray-400 font-mono truncate">${agent.tag}</p>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        function filterOverview(role) {
+            document.querySelectorAll('.roster-tab').forEach(b => {
+                b.className = "roster-tab px-3 py-1 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700";
+            });
+            event.target.className = "roster-tab active px-3 py-1 text-xs font-bold bg-valRed text-white val-border";
+            renderGlobalRoster(role);
+        }
+
+        // Initialize App
+        window.onload = function() {
+            loadProfiles();
+            renderSquad();
+            renderGlobalRoster();
+        };
+    </script>
+</body>
+</html>
